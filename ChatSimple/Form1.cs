@@ -1,8 +1,9 @@
-using System.Net;
+using MySqlConnector;
+using System.ComponentModel;
 using System.IO;
+using System.Net;
 using System.Net.Sockets;
 using System.Threading.Tasks;
-using System.ComponentModel;
 
 
 namespace ChatSimple
@@ -35,6 +36,10 @@ namespace ChatSimple
                 if (respuesta == DialogResult.Yes)
                 {
                     esServidor = true;
+
+
+                   
+                    rtbHistorial.AppendText(db.ObtenerHistorial());
 
                     int puerto = int.Parse(txtPuerto.Text);
                     TcpListener listener = new TcpListener(IPAddress.Any, puerto);
@@ -72,7 +77,6 @@ namespace ChatSimple
                     reader = new StreamReader(stream);
                     writer = new StreamWriter(stream) { AutoFlush = true };
 
-                    // ENVIAR NOMBRE AL SERVIDOR
                     await writer.WriteLineAsync(nombreUsuario);
 
                     _ = RecibirMensajes();
@@ -90,12 +94,17 @@ namespace ChatSimple
             StreamReader clientReader = new StreamReader(stream);
             StreamWriter clientWriter = new StreamWriter(stream) { AutoFlush = true };
 
-            // LEER NOMBRE DEL CLIENTE
+           
             string nombreCliente = await clientReader.ReadLineAsync();
+        
+            //
+            string historial = db.ObtenerHistorial();
+           
+            await clientWriter.WriteLineAsync(historial);
 
             lock (lockClientes) { clientesConectados.Add(clientWriter); }
 
-            // MENSAJE DE ENTRADA
+            
             rtbHistorial.Invoke((MethodInvoker)delegate {
                 rtbHistorial.AppendText(nombreCliente + " se unió al chat\r\n");
             });
@@ -110,8 +119,10 @@ namespace ChatSimple
 
                     if (mensajeRecibido != null)
                     {
-                        string horaActual = DateTime.Now.ToString("HH:mm");
-                        string MensajeFinal = "[" + horaActual + "] " + nombreCliente + ": " + mensajeRecibido;
+                       // string fechaHora = DateTime.Now.ToString("dd/MM/yyyy HH:mm");
+                        string fecha = DateTime.Today.ToString();
+                        string hora = DateTime.Today.ToString("HH:mm");
+                        string MensajeFinal = "[" + fecha + hora + "] " + nombreCliente + ": " + mensajeRecibido;
 
                         rtbHistorial.Invoke((MethodInvoker)delegate {
                             rtbHistorial.AppendText(MensajeFinal + "\r\n");
@@ -131,7 +142,7 @@ namespace ChatSimple
             }
             catch
             {
-                MessageBox.Show("Error con un cliente.");
+                
             }
             finally
             {
@@ -205,7 +216,7 @@ namespace ChatSimple
                 });
             }
         }
-
+        
         private async void btnEnviar_Click(object sender, EventArgs e)
         {
             string mensaje = txtMensaje.Text;
@@ -215,11 +226,14 @@ namespace ChatSimple
             {
                 if (esServidor)
                 {
-                    string hora = DateTime.Now.ToString("HH:mm");
-                    string formatoServer = "[" + hora + "] Server: " + mensaje;
+                   // string fechaHora = DateTime.Now.ToString("dd/MM/yyyy HH:mm");
+                    string fecha = DateTime.Today.ToString();
+                    string hora = DateTime.Today.ToString("HH:mm");
+                    
+                    string MensajeCompleto = "[" + fecha+ hora + "] Server: " + mensaje;
 
-                    rtbHistorial.AppendText(formatoServer + "\r\n");
-                    DifundirMensaje(formatoServer);
+                    rtbHistorial.AppendText(MensajeCompleto + "\r\n");
+                    DifundirMensaje(MensajeCompleto);
                     db.GuardarMensaje("Server", mensaje);
                 }
                 else if (cliente != null && cliente.Connected)
