@@ -38,11 +38,13 @@
             txtMensaje = new TextBox();
             label4 = new Label();
             btnEnviar = new Button();
+            txtNombre = new TextBox();
+            label5 = new Label();
             SuspendLayout();
             // 
             // txtIP
             // 
-            txtIP.Location = new Point(22, 37);
+            txtIP.Location = new Point(263, 38);
             txtIP.Name = "txtIP";
             txtIP.Size = new Size(211, 31);
             txtIP.TabIndex = 0;
@@ -50,7 +52,7 @@
             // label1
             // 
             label1.AutoSize = true;
-            label1.Location = new Point(22, 9);
+            label1.Location = new Point(263, 10);
             label1.Name = "label1";
             label1.Size = new Size(27, 25);
             label1.TabIndex = 1;
@@ -59,7 +61,7 @@
             // label2
             // 
             label2.AutoSize = true;
-            label2.Location = new Point(253, 9);
+            label2.Location = new Point(494, 10);
             label2.Name = "label2";
             label2.Size = new Size(64, 25);
             label2.TabIndex = 3;
@@ -67,14 +69,14 @@
             // 
             // txtPuerto
             // 
-            txtPuerto.Location = new Point(253, 37);
+            txtPuerto.Location = new Point(494, 38);
             txtPuerto.Name = "txtPuerto";
             txtPuerto.Size = new Size(96, 31);
             txtPuerto.TabIndex = 2;
             // 
             // btnIniciarServidor
             // 
-            btnIniciarServidor.Location = new Point(388, 34);
+            btnIniciarServidor.Location = new Point(611, 35);
             btnIniciarServidor.Name = "btnIniciarServidor";
             btnIniciarServidor.Size = new Size(170, 34);
             btnIniciarServidor.TabIndex = 4;
@@ -86,7 +88,7 @@
             // 
             rtbHistorial.Location = new Point(22, 119);
             rtbHistorial.Name = "rtbHistorial";
-            rtbHistorial.Size = new Size(536, 235);
+            rtbHistorial.Size = new Size(694, 235);
             rtbHistorial.TabIndex = 5;
             rtbHistorial.Text = "";
             // 
@@ -125,11 +127,29 @@
             btnEnviar.UseVisualStyleBackColor = true;
             btnEnviar.Click += btnEnviar_Click;
             // 
+            // txtNombre
+            // 
+            txtNombre.Location = new Point(54, 38);
+            txtNombre.Name = "txtNombre";
+            txtNombre.Size = new Size(160, 31);
+            txtNombre.TabIndex = 10;
+            // 
+            // label5
+            // 
+            label5.AutoSize = true;
+            label5.Location = new Point(73, 10);
+            label5.Name = "label5";
+            label5.Size = new Size(78, 25);
+            label5.TabIndex = 11;
+            label5.Text = "Nombre";
+            // 
             // Form1
             // 
             AutoScaleDimensions = new SizeF(10F, 25F);
             AutoScaleMode = AutoScaleMode.Font;
-            ClientSize = new Size(594, 450);
+            ClientSize = new Size(804, 448);
+            Controls.Add(label5);
+            Controls.Add(txtNombre);
             Controls.Add(btnEnviar);
             Controls.Add(label4);
             Controls.Add(txtMensaje);
@@ -158,5 +178,7 @@
         private TextBox txtMensaje;
         private Label label4;
         private Button btnEnviar;
+        private TextBox txtNombre;
+        private Label label5;
     }
 }

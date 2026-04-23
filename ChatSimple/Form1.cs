@@ -3,6 +3,7 @@ using System.IO;
 using System.Net.Sockets;
 using System.Threading.Tasks;
 using System.ComponentModel;
+
 namespace ChatSimple
 {
     public partial class Form1 : Form
@@ -10,6 +11,13 @@ namespace ChatSimple
         private TcpClient cliente;
         private StreamReader reader;
         private StreamWriter writer;
+        string nombreUsuario = "";
+
+        private List<StreamWriter> clientesConectados = new List<StreamWriter>();
+        private readonly object lockClientes = new object();
+
+        private bool esServidor = false;
+
         public Form1()
         {
             InitializeComponent();
@@ -17,49 +25,132 @@ namespace ChatSimple
 
         private async void btnIniciarServidor_Click(object sender, EventArgs e)
         {
-            DialogResult respuesta = MessageBox.Show("¿Esta aplicacion " +
-                "es el Servidor?", "Sistema", MessageBoxButtons.YesNo,
-                MessageBoxIcon.Question);
+            DialogResult respuesta = MessageBox.Show("¿Esta aplicacion es el Servidor?", "Sistema", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
+
             try
             {
                 if (respuesta == DialogResult.Yes)
                 {
-                    int port = int.Parse(txtPuerto.Text);
-                    TcpListener server = new TcpListener(IPAddress.Any, port);
-                    server.Start();
-                    string ip = getIP();
-                    rtbHistorial.AppendText("Servidor iniciado en la IP y puerto: " 
-                        + ip +":" + port + "\n");
+                    esServidor = true;
 
-                    //Esperars que un cliente se conecte de manera asincrona
-                    cliente = await server.AcceptTcpClientAsync();
-                    rtbHistorial.AppendText("Cliente conectado!\n");
+                    int puerto = int.Parse(txtPuerto.Text);
+                    TcpListener listener = new TcpListener(IPAddress.Any, puerto);
+                    listener.Start();
 
-                    ConfigurarStreams();
-                    _ = RecibirMensajes();
+                    rtbHistorial.AppendText("Servidor iniciado en: " + getIP() + ":" + puerto + "\r\n");
+
+                    while (true)
+                    {
+                        TcpClient nuevoCliente = await listener.AcceptTcpClientAsync();
+                        _ = ManejarCliente(nuevoCliente);
+                    }
                 }
                 else
                 {
+                    // VALIDAR NOMBRE
+                    if (string.IsNullOrWhiteSpace(txtNombre.Text))
+                    {
+                        MessageBox.Show("Debes escribir un nombre.");
+                        return;
+                    }
+
+                    nombreUsuario = txtNombre.Text;
+
                     string ip = txtIP.Text;
                     int port = int.Parse(txtPuerto.Text);
 
                     cliente = new TcpClient();
-                    rtbHistorial.AppendText("Conectando al servidor...\n");
+                    rtbHistorial.AppendText("Conectando...\r\n");
 
                     await cliente.ConnectAsync(ip, port);
-                    rtbHistorial.AppendText("Conectado\n");
+                    rtbHistorial.AppendText("Conectado al chat\r\n");
 
-                    ConfigurarStreams();
+                    NetworkStream stream = cliente.GetStream();
+                    reader = new StreamReader(stream);
+                    writer = new StreamWriter(stream) { AutoFlush = true };
+
+                    // ENVIAR NOMBRE AL SERVIDOR
+                    await writer.WriteLineAsync(nombreUsuario);
+
                     _ = RecibirMensajes();
-
                 }
             }
-
             catch (Exception ex)
             {
                 MessageBox.Show("Error: " + ex.ToString());
             }
+        }
 
+        private async Task ManejarCliente(TcpClient cliente)
+        {
+            NetworkStream stream = cliente.GetStream();
+            StreamReader clientReader = new StreamReader(stream);
+            StreamWriter clientWriter = new StreamWriter(stream) { AutoFlush = true };
+
+            // LEER NOMBRE DEL CLIENTE
+            string nombreCliente = await clientReader.ReadLineAsync();
+
+            lock (lockClientes) { clientesConectados.Add(clientWriter); }
+
+            // MENSAJE DE ENTRADA
+            rtbHistorial.Invoke((MethodInvoker)delegate {
+                rtbHistorial.AppendText(nombreCliente + " se unió al chat\r\n");
+            });
+
+            DifundirMensaje(nombreCliente + " se unió al chat");
+
+            try
+            {
+                while (cliente.Connected)
+                {
+                    string mensajeRecibido = await clientReader.ReadLineAsync();
+
+                    if (mensajeRecibido != null)
+                    {
+                        rtbHistorial.Invoke((MethodInvoker)delegate {
+                            rtbHistorial.AppendText(nombreCliente + ": " + mensajeRecibido + "\r\n");
+                        });
+
+                        DifundirMensaje(nombreCliente + ": " + mensajeRecibido);
+                    }
+                    else
+                    {
+                        break;
+                    }
+                }
+            }
+            catch
+            {
+                MessageBox.Show("Error con un cliente.");
+            }
+            finally
+            {
+                lock (lockClientes) { clientesConectados.Remove(clientWriter); }
+
+                rtbHistorial.Invoke((MethodInvoker)delegate {
+                    rtbHistorial.AppendText(nombreCliente + " salió del chat\r\n");
+                });
+
+                DifundirMensaje(nombreCliente + " salió del chat");
+
+                cliente.Close();
+            }
+        }
+
+        private async void DifundirMensaje(string mensaje)
+        {
+            List<StreamWriter> copiaClientes;
+
+            lock (lockClientes) { copiaClientes = new List<StreamWriter>(clientesConectados); }
+
+            foreach (var clientWriter in copiaClientes)
+            {
+                try
+                {
+                    await clientWriter.WriteLineAsync(mensaje);
+                }
+                catch { }
+            }
         }
 
         private string getIP()
@@ -70,19 +161,13 @@ namespace ChatSimple
 
             foreach (IPAddress ip in host.AddressList)
             {
-                if (ip.AddressFamily == AddressFamily.InterNetwork) // Filtra IPv4
+                if (ip.AddressFamily == AddressFamily.InterNetwork)
                 {
                     myIP = ip.ToString();
                     break;
                 }
             }
             return myIP;
-        }
-        private void ConfigurarStreams()
-        {
-            NetworkStream stream = cliente.GetStream();
-            reader = new StreamReader(stream);
-            writer = new StreamWriter(stream) { AutoFlush = true };
         }
 
         private async Task RecibirMensajes()
@@ -92,46 +177,48 @@ namespace ChatSimple
                 while (cliente != null && cliente.Connected)
                 {
                     string mensajeRecibido = await reader.ReadLineAsync();
+
                     if (mensajeRecibido != null)
                     {
                         rtbHistorial.Invoke((MethodInvoker)delegate
                         {
-                            rtbHistorial.AppendText("Extraño: "
-                                + mensajeRecibido + "\n");
+                            rtbHistorial.AppendText(mensajeRecibido + "\n");
                         });
                     }
-
                 }
             }
-            catch (Exception)
+            catch
             {
                 rtbHistorial.Invoke((MethodInvoker)delegate
                 {
-                    rtbHistorial.AppendText("Cliente Desconectado \n");
+                    rtbHistorial.AppendText("Desconectado\n");
                 });
             }
         }
 
         private async void btnEnviar_Click(object sender, EventArgs e)
         {
-            if (cliente != 
-                null && cliente.Connected && 
-                !string.IsNullOrWhiteSpace(txtMensaje.Text))
-            {
-                try { 
-                    string mensaje= txtMensaje.Text;
-                    await writer.WriteLineAsync(mensaje);
+            string mensaje = txtMensaje.Text;
+            if (string.IsNullOrWhiteSpace(mensaje)) return;
 
-                    rtbHistorial.AppendText("Yo: " + mensaje + "\n");
-                    txtMensaje.Clear();
+            try
+            {
+                if (esServidor)
+                {
+                    rtbHistorial.AppendText("Server: " + mensaje + "\r\n");
+                    DifundirMensaje("Server: " + mensaje);
                 }
-                catch (Exception ex) {
-                    MessageBox.Show("Error:" +
-                    ex.ToString()); }
+                else if (cliente != null && cliente.Connected)
+                {
+                    await writer.WriteLineAsync(mensaje);
+                }
+
+                txtMensaje.Clear();
             }
-            else
-                MessageBox.Show("No hay clientes conectados","Sistema",
-                    MessageBoxButtons .OK, MessageBoxIcon.Warning);
+            catch (Exception ex)
+            {
+                MessageBox.Show("Error: " + ex.Message);
+            }
         }
     }
 }
