@@ -4,6 +4,7 @@ using System.Net.Sockets;
 using System.Threading.Tasks;
 using System.ComponentModel;
 
+
 namespace ChatSimple
 {
     public partial class Form1 : Form
@@ -17,6 +18,8 @@ namespace ChatSimple
         private readonly object lockClientes = new object();
 
         private bool esServidor = false;
+
+        Conexion db = new Conexion();
 
         public Form1()
         {
@@ -107,11 +110,18 @@ namespace ChatSimple
 
                     if (mensajeRecibido != null)
                     {
+                        string horaActual = DateTime.Now.ToString("HH:mm");
+                        string MensajeFinal = "[" + horaActual + "] " + nombreCliente + ": " + mensajeRecibido;
+
                         rtbHistorial.Invoke((MethodInvoker)delegate {
-                            rtbHistorial.AppendText(nombreCliente + ": " + mensajeRecibido + "\r\n");
+                            rtbHistorial.AppendText(MensajeFinal + "\r\n");
                         });
 
-                        DifundirMensaje(nombreCliente + ": " + mensajeRecibido);
+                        
+                        DifundirMensaje(MensajeFinal);
+
+                        
+                        db.GuardarMensaje(nombreCliente, mensajeRecibido);
                     }
                     else
                     {
@@ -205,8 +215,12 @@ namespace ChatSimple
             {
                 if (esServidor)
                 {
-                    rtbHistorial.AppendText("Server: " + mensaje + "\r\n");
-                    DifundirMensaje("Server: " + mensaje);
+                    string hora = DateTime.Now.ToString("HH:mm");
+                    string formatoServer = "[" + hora + "] Server: " + mensaje;
+
+                    rtbHistorial.AppendText(formatoServer + "\r\n");
+                    DifundirMensaje(formatoServer);
+                    db.GuardarMensaje("Server", mensaje);
                 }
                 else if (cliente != null && cliente.Connected)
                 {
