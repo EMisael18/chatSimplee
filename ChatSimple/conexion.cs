@@ -7,11 +7,12 @@ namespace ChatSimple
 {
     class Conexion
     {
-        string cadena = "server=localhost;user=Luis;pwd=JoseLuis;database=chat";
+        string cadena = "server=localhost;port=3308;user=Luis;pwd=JoseLuis;database=chat";
 
         MySqlConnection conexion;
 
         public static int Puerto = 0;
+        public static string IpServidor = "";
 
         private void conectar()
         {
@@ -36,7 +37,7 @@ namespace ChatSimple
             catch { }
         }
 
-        // 🔵 SELECT
+        
         public DataSet ejecutar(string sql)
         {
             try

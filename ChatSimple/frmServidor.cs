@@ -27,6 +27,9 @@ namespace ChatSimple
             {
                 Conexion.Puerto = int.Parse(txtPuerto.Text);
 
+                Conexion.IpServidor = getIP();
+
+
                 DataSet ds = db.ejecutar("SELECT usuario, mensaje, timestamp FROM historico");
 
                 if (ds != null)
@@ -46,7 +49,7 @@ namespace ChatSimple
                 TcpListener listener = new TcpListener(IPAddress.Any, Conexion.Puerto);
                 listener.Start();
 
-                rtbHistorial.AppendText("Servidor iniciado en: " + getIP() + ":" + Conexion.Puerto + "\r\n");
+                rtbHistorial.AppendText("Servidor iniciado en: " + Conexion.IpServidor + ":" + Conexion.Puerto + "\r\n");
 
                 while (true)
                 {
@@ -65,8 +68,10 @@ namespace ChatSimple
             NetworkStream stream = cliente.GetStream();
             StreamReader clientReader = new StreamReader(stream);
             StreamWriter clientWriter = new StreamWriter(stream) { AutoFlush = true };
-
-            string nombreCliente = await clientReader.ReadLineAsync();
+            string nombreCliente = "";
+            try
+            {
+                nombreCliente = await clientReader.ReadLineAsync();
 
             DataSet ds = db.ejecutar("SELECT usuario, mensaje, timestamp FROM historico");
 
@@ -94,20 +99,10 @@ namespace ChatSimple
 
             DifundirMensaje(nombreCliente + " se unió al chat");
 
-            try
-            {
-                while (true)
+           
+                while (cliente.Connected)
                 {
-                    string mensajeRecibido = null;
-
-                    try
-                    {
-                        mensajeRecibido = await clientReader.ReadLineAsync();
-                    }
-                    catch
-                    {
-                        break;
-                    }
+                    string mensajeRecibido = mensajeRecibido = await clientReader.ReadLineAsync();
 
                     if (mensajeRecibido == null)
                     {

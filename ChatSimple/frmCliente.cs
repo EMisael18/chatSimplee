@@ -26,7 +26,7 @@ namespace ChatSimple
                 return;
             }
 
-            if (Conexion.Puerto == 0)
+            if (Conexion.Puerto == 0 || string.IsNullOrEmpty(Conexion.IpServidor))
             {
                 MessageBox.Show("Primero inicia el servidor.");
                 return;
@@ -37,9 +37,9 @@ namespace ChatSimple
                 nombreUsuario = txtNombre.Text;
 
                 cliente = new TcpClient();
-                rtbHistorial.AppendText("Conectando......");
+                rtbHistorial.AppendText("Conectando...... " + Conexion.IpServidor + ":" + Conexion.Puerto + "\r\n");
 
-                await cliente.ConnectAsync("localhost", Conexion.Puerto);
+                await cliente.ConnectAsync(Conexion.IpServidor, Conexion.Puerto);
 
                 NetworkStream stream = cliente.GetStream();
                 reader = new StreamReader(stream);
