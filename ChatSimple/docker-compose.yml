@@ -4,7 +4,7 @@ services:
     mysql:
       image: mysql:8.0
       command: --bind-address 0.0.0.0
-      container_name: mysql_chat
+      container_name: mysql_server
       restart: always
       environment:
         MYSQL_ROOT_PASSWORD: JoseLuis
@@ -12,7 +12,7 @@ services:
         MYSQL_USER: Luis
         MYSQL_PASSWORD: JoseLuis
       ports:
-        - "3308:3306"
+        - "3306:3306"
       volumes:
         - mysql_data:/var/lib/mysql
         - ./init.sql:/docker-entrypoint-initdb.d/init.sql

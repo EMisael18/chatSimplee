@@ -1,67 +1,80 @@
 ﻿using System;
-using MySqlConnector; 
+using System.Data;
+using System.Windows.Forms;
+using MySqlConnector;
 
 namespace ChatSimple
 {
     class Conexion
     {
-        
-        private string cadena = "Server=localhost;Port=3308;Database=chat;Uid=Luis;Pwd=JoseLuis;";
+        string cadena = "server=localhost;user=Luis;pwd=JoseLuis;database=chat";
 
-        public void GuardarMensaje(string user, string msg)
+        MySqlConnection conexion;
+
+        public static int Puerto = 0;
+
+        private void conectar()
         {
             try
             {
-                MySqlConnection conectar = new MySqlConnection(cadena);
-                conectar.Open();
-
-             
-                string sql = "INSERT INTO historico (usuario, mensaje) VALUES ('" + user + "', '" + msg + "')";
-
-                MySqlCommand comando = new MySqlCommand(sql, conectar);
-                comando.ExecuteNonQuery();
-
-                conectar.Close();
-            }
-            catch (Exception)
-            {
-               
-            }
-        }
-        public string ObtenerHistorial()
-        {
-            string todoElChat = "";
-            try
-            {
-                MySqlConnection conectar = new MySqlConnection(cadena);
-                conectar.Open();
-
-                
-                string sql = "SELECT usuario, mensaje, timestamp FROM historico";
-
-                MySqlCommand comando = new MySqlCommand(sql, conectar);
-                MySqlDataReader lector = comando.ExecuteReader();
-
-                while (lector.Read() == true)
-                {
-                    string usuario = lector["usuario"].ToString();
-                    string mensaje = lector["mensaje"].ToString();
-
-                   
-                    string fecha = lector["timestamp"].ToString();
-
-                   
-                    todoElChat = todoElChat + "[" + fecha + "] " + usuario + ": " + mensaje + "\r\n";
-                }
-
-                lector.Close();
-                conectar.Close();
+                conexion = new MySqlConnection(cadena);
+                conexion.Open();
             }
             catch (Exception ex)
             {
-                return "Error: " + ex.Message;
+                MessageBox.Show("Error conexión: " + ex.Message);
             }
-            return todoElChat;
         }
+
+        private void desconectar()
+        {
+            try
+            {
+                if (conexion != null)
+                    conexion.Close();
+            }
+            catch { }
+        }
+
+        // 🔵 SELECT
+        public DataSet ejecutar(string sql)
+        {
+            try
+            {
+                conectar();
+                MySqlDataAdapter da = new MySqlDataAdapter(sql, conexion);
+                DataSet ds = new DataSet();
+                da.Fill(ds);
+                desconectar();
+                return ds;
+            }
+            catch
+            {
+                desconectar();
+                return null;
+            }
+        }
+
+        
+        public bool ejecutarcomando(string sql)
+        {
+            try
+            {
+                conectar();
+                MySqlCommand cmd = new MySqlCommand(sql, conexion);
+                cmd.ExecuteNonQuery();
+                desconectar();
+                return true;
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.Message);
+                desconectar();
+                return false;
+            }
+        }
+
+       
+       
     }
 }
